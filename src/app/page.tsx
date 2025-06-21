@@ -1,15 +1,7 @@
 'use client';
 
-import { Suspense } from 'react';
-import CreateTask from './CreateTask'; // move your component logic here
-
-export default function CreateTaskPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <CreateTask />
-    </Suspense>
-  );
-}
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 const NAVBAR = (
   <nav className="flex justify-between items-center py-4 px-6 bg-[#1e1e1e] text-white shadow-md mb-8">
@@ -67,7 +59,6 @@ export default function Dashboard() {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
-  // Use strict type so no implicit 'any'
   const statusColor = (status: StatusType) => {
     const map: Record<StatusType, string> = {
       'Todo': 'bg-blue-200 text-blue-800',
@@ -77,7 +68,6 @@ export default function Dashboard() {
     return `${map[status]} border border-gray-500`;
   };
 
-  // Use strict type so no implicit 'any'
   const priorityColor = (priority: PriorityType) => {
     const map: Record<PriorityType, string> = {
       High: 'text-red-400 font-bold',

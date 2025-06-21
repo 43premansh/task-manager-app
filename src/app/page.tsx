@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -13,7 +12,6 @@ const NAVBAR = (
   </nav>
 );
 
-
 type Task = {
   id: string;
   title: string;
@@ -25,13 +23,16 @@ type Task = {
   createdAt: string;
 };
 
+type StatusType = Task['status'];
+type PriorityType = Task['priority'];
+
 export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [priorityFilter, setPriorityFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState<'All' | StatusType>('All');
+  const [priorityFilter, setPriorityFilter] = useState<'All' | PriorityType>('All');
   const [tagFilter, setTagFilter] = useState('');
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortBy, setSortBy] = useState<'createdAt' | 'dueDate' | 'priority'>('createdAt');
 
   useEffect(() => {
     const stored = localStorage.getItem('tasks');
@@ -58,24 +59,27 @@ export default function Dashboard() {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
-  const statusColor = (status: 'Todo' | 'In Progress' | 'Done') => {
-  const map = {
-    'Todo': 'bg-blue-200 text-blue-800',
-    'In Progress': 'bg-yellow-200 text-yellow-800',
-    'Done': 'bg-gray-600 text-white',
+  // Use strict type so no implicit 'any'
+  const statusColor = (status: StatusType) => {
+    const map: Record<StatusType, string> = {
+      'Todo': 'bg-blue-200 text-blue-800',
+      'In Progress': 'bg-yellow-200 text-yellow-800',
+      'Done': 'bg-gray-600 text-white',
+    };
+    return `${map[status]} border border-gray-500`;
   };
-  return `${map[status]} border border-gray-500`;
-};
 
-  const priorityColor = (priority: string) => {
-    return {
+  // Use strict type so no implicit 'any'
+  const priorityColor = (priority: PriorityType) => {
+    const map: Record<PriorityType, string> = {
       High: 'text-red-400 font-bold',
       Medium: 'text-gray-300 font-semibold',
       Low: 'text-gray-400 font-medium',
-    }[priority];
+    };
+    return map[priority];
   };
 
-  const countByStatus = (status: string) =>
+  const countByStatus = (status: StatusType) =>
     tasks.filter(t => t.status === status).length;
 
   return (
@@ -85,7 +89,7 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-6">
         <h2 className="text-3xl font-bold mb-4">Overview</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          {['Todo', 'In Progress', 'Done'].map((s) => (
+          {(['Todo', 'In Progress', 'Done'] as StatusType[]).map((s) => (
             <div key={s} className="bg-gray-800 p-4 rounded-xl shadow-md flex justify-between">
               <span>{s}</span>
               <span className="font-bold text-lg">{countByStatus(s)}</span>
@@ -94,20 +98,20 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="p-2 rounded-xl bg-gray-800 border border-gray-600">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as 'All' | StatusType)} className="p-2 rounded-xl bg-gray-800 border border-gray-600">
             <option value="All">All Statuses</option>
             <option value="Todo">Todo</option>
             <option value="In Progress">In Progress</option>
             <option value="Done">Done</option>
           </select>
-          <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} className="p-2 rounded-xl bg-gray-800 border border-gray-600">
+          <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value as 'All' | PriorityType)} className="p-2 rounded-xl bg-gray-800 border border-gray-600">
             <option value="All">All Priorities</option>
             <option value="Low">Low</option>
             <option value="Medium">Medium</option>
             <option value="High">High</option>
           </select>
           <input type="text" placeholder="Tag filter" value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} className="p-2 rounded-xl bg-gray-800 border border-gray-600" />
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="p-2 rounded-xl bg-gray-800 border border-gray-600">
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as 'createdAt' | 'dueDate' | 'priority')} className="p-2 rounded-xl bg-gray-800 border border-gray-600">
             <option value="createdAt">Newest First</option>
             <option value="dueDate">Sort by Due Date</option>
             <option value="priority">Sort by Priority</option>
@@ -128,7 +132,7 @@ export default function Dashboard() {
                 <p className="text-sm text-gray-400 mb-3">{task.description}</p>
                 <div className="flex flex-wrap gap-2 text-sm mb-2">
                   <span className={priorityColor(task.priority)}>⚡ {task.priority}</span>
-                  <span className={`px-2 py-1 text-xs rounded-full ${badgeColor(task.status)}`}>📌 {task.status}</span>
+                  <span className={`px-2 py-1 text-xs rounded-full ${statusColor(task.status)}`}>📌 {task.status}</span>
                   <span className="text-gray-400 text-sm">📅 {task.dueDate}</span>
                 </div>
                 <div className="flex flex-wrap gap-2 mb-4">

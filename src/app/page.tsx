@@ -58,14 +58,14 @@ export default function Dashboard() {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
-  const badgeColor = (status: string) => {
-    const map = {
-      'Todo': 'bg-gray-800 text-gray-300',
-      'In Progress': 'bg-gray-700 text-gray-100',
-      'Done': 'bg-gray-600 text-white',
-    };
-    return `${map[status]} border border-gray-500`;
+  const statusColor = (status: 'Todo' | 'In Progress' | 'Done') => {
+  const map = {
+    'Todo': 'bg-blue-200 text-blue-800',
+    'In Progress': 'bg-yellow-200 text-yellow-800',
+    'Done': 'bg-gray-600 text-white',
   };
+  return `${map[status]} border border-gray-500`;
+};
 
   const priorityColor = (priority: string) => {
     return {

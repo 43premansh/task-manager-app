@@ -81,12 +81,15 @@ export default function CreateTask() {
       );
     } else {
       const newTask: Task = {
-        ...task,
         id: crypto.randomUUID(),
+        title: task.title,
+        description: task.description,
         dueDate: finalDueDate,
+        priority: task.priority as 'Low' | 'Medium' | 'High',
         tags: task.tags.split(',').map(tag => tag.trim()),
+        status: task.status as 'Todo' | 'In Progress' | 'Done',
         createdAt: new Date().toISOString(),
-      };
+    };
       updatedTasks = [...storedTasks, newTask];
     }
 

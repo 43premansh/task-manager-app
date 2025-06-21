@@ -1,30 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, ChangeEvent, FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import Link from 'next/link';
-
-const NAVBAR = (
-  <nav className="flex justify-between items-center py-4 px-6 bg-[#1e1e1e] text-white shadow-md mb-8">
-    <h1 className="text-xl font-bold">Task Manager</h1>
-    <div className="space-x-4">
-      <Link href="/" className="hover:underline">Dashboard</Link>
-      <Link href="/create" className="hover:underline">Create Task</Link>
-    </div>
-  </nav>
-);
+import NavBar from '../components/NavBar';
 
 type Task = {
-  id: string;
+  id?: string;
   title: string;
   description?: string;
   dueDate: string;
-  priority: 'Low' | 'Medium' | 'High';
-  tags: string[];
-  status: 'Todo' | 'In Progress' | 'Done';
-  createdAt: string;
+  priority: string;
+  tags: string[] | string;
+  status: string;
+  createdAt?: string;
 };
 
 export default function CreateTask() {
@@ -32,21 +22,20 @@ export default function CreateTask() {
   const searchParams = useSearchParams();
   const taskId = searchParams.get('id');
 
-  const [task, setTask] = useState<Omit<Task, 'id' | 'tags' | 'createdAt'> & { tags: string }>(() => ({
+  const [task, setTask] = useState<Omit<Task, 'id' | 'createdAt'>>({
     title: '',
     description: '',
     dueDate: '',
     priority: 'Medium',
     tags: '',
     status: 'Todo',
-  }));
-
+  });
 
   const [dueDateObj, setDueDateObj] = useState<Date | null>(null);
 
   useEffect(() => {
     if (taskId) {
-      const tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+      const tasks: Task[] = JSON.parse(localStorage.getItem('tasks') || '[]');
       const existing = tasks.find((t: Task) => t.id === taskId);
       if (existing) {
         setTask({
@@ -54,31 +43,33 @@ export default function CreateTask() {
           description: existing.description || '',
           dueDate: existing.dueDate,
           priority: existing.priority,
-          tags: existing.tags.join(', '),
+          tags: Array.isArray(existing.tags) ? existing.tags.join(', ') : existing.tags,
           status: existing.status,
         });
         const parsedDate = new Date(existing.dueDate);
-        if (!isNaN(parsedDate.getTime())) {
-          setDueDateObj(parsedDate);
-        } else {
-          setDueDateObj(null);
-        }
+        setDueDateObj(!isNaN(parsedDate.getTime()) ? parsedDate : null);
       }
     }
   }, [taskId]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setTask({ ...task, [e.target.name]: e.target.value });
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setTask((prevTask) => ({
+      ...prevTask,
+      [name]: value,
+    }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const storedTasks = typeof window !== 'undefined'
-      ? JSON.parse(localStorage.getItem('tasks') || '[]')
-      : [];
-    const finalDueDate = dueDateObj ? dueDateObj.toISOString().split('T')[0] : '';
-    let updatedTasks;
+    // Ensure dueDate is in YYYY-MM-DD format
+    const finalDueDate = dueDateObj
+      ? dueDateObj.toISOString().split('T')[0]
+      : task.dueDate;
+
+    const storedTasks: Task[] = JSON.parse(localStorage.getItem('tasks') || '[]');
+    let updatedTasks: Task[];
 
     if (taskId) {
       updatedTasks = storedTasks.map((t: Task) =>
@@ -87,18 +78,28 @@ export default function CreateTask() {
               ...t,
               ...task,
               dueDate: finalDueDate,
-              tags: task.tags.split(',').map(tag => tag.trim()),
+              tags: (typeof task.tags === 'string'
+                ? task.tags
+                : (task.tags as string[]).join(', ')
+              )
+                .split(',')
+                .map(tag => tag.trim())
+                .filter(tag => tag.length > 0),
             }
           : t
       );
     } else {
       const newTask: Task = {
         ...task,
-        id: typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID
-          ? window.crypto.randomUUID()
-          : Math.random().toString(36).substring(2, 11),
+        id: crypto.randomUUID(),
         dueDate: finalDueDate,
-        tags: task.tags.split(',').map(tag => tag.trim()),
+        tags: (typeof task.tags === 'string'
+          ? task.tags
+          : (task.tags as string[]).join(', ')
+        )
+          .split(',')
+          .map(tag => tag.trim())
+          .filter(tag => tag.length > 0),
         createdAt: new Date().toISOString(),
       };
       updatedTasks = [...storedTasks, newTask];
@@ -106,12 +107,12 @@ export default function CreateTask() {
 
     localStorage.setItem('tasks', JSON.stringify(updatedTasks));
     alert(taskId ? 'Task updated!' : 'Task created!');
-    router.push('/');
+    router.push('/dashboard');
   };
 
   return (
     <div className="min-h-screen bg-[#121212] text-white">
-      {NAVBAR}
+      <NavBar />
       <div className="max-w-2xl mx-auto p-6">
         <h1 className="text-3xl font-bold mb-6">{taskId ? 'Edit Task' : 'Create Task'}</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -122,6 +123,7 @@ export default function CreateTask() {
             value={task.title}
             className="w-full p-3 border border-gray-600 rounded-xl shadow-sm bg-black text-white"
             onChange={handleChange}
+            autoComplete="off"
           />
           <textarea
             name="description"
@@ -129,14 +131,19 @@ export default function CreateTask() {
             value={task.description}
             className="w-full p-3 border border-gray-600 rounded-xl shadow-sm bg-black text-white"
             onChange={handleChange}
+            autoComplete="off"
           />
           <div className="flex flex-col gap-1">
             <label className="font-medium text-sm text-white">Due Date</label>
             <DatePicker
               selected={dueDateObj}
-              onChange={(date) => {
+              onChange={(date: Date | null) => {
                 setDueDateObj(date);
-                if (date) setTask({ ...task, dueDate: date.toISOString().split('T')[0] });
+                if (date)
+                  setTask((prevTask) => ({
+                    ...prevTask,
+                    dueDate: date.toISOString().split('T')[0],
+                  }));
               }}
               dateFormat="yyyy-MM-dd"
               placeholderText="Select due date"
@@ -159,6 +166,7 @@ export default function CreateTask() {
             value={task.tags}
             className="w-full p-3 border border-gray-600 rounded-xl shadow-sm bg-black text-white"
             onChange={handleChange}
+            autoComplete="off"
           />
           <select
             name="status"
